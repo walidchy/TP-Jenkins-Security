@@ -6,12 +6,12 @@ pipeline {
         SCANNER_HOME = tool 'SonarScanner'
     }
 
-    stages {
-        stage('Clone Repository') {
-            steps {
-                git 'https://github.com/walidchy/TP-Jenkins-Security.git'
-            }
-        }
+  stage('Clone Repository') {
+    steps {
+        // Cette commande dit à Jenkins : "Récupère le code comme tu l'as fait au début"
+        checkout scm
+    }
+}
 
         stage('Install Dependencies') {
             steps {

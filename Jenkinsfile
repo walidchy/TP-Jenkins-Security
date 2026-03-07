@@ -2,38 +2,41 @@ pipeline {
     agent any
 
     environment {
-        // This makes sure tools are in the path
+        // Nom de l'outil configuré dans Administrer Jenkins > Tools
         SCANNER_HOME = tool 'SonarScanner'
     }
 
-  stage('Clone Repository') {
-    steps {
-        // Cette commande dit à Jenkins : "Récupère le code comme tu l'as fait au début"
-        checkout scm
-    }
-}
+    stages {
+        stage('Clone Repository') {
+            steps {
+                // SOLUTION : Utiliser 'checkout scm' au lieu de la commande git manuelle.
+                // Cela utilise automatiquement la branche 'main' et les réglages du projet.
+                checkout scm
+            }
+        }
 
         stage('Install Dependencies') {
             steps {
+                // Installation des bibliothèques listées dans requirements.txt
                 sh 'pip install -r requirements.txt --break-system-packages'
             }
         }
 
         stage('Run Tests') {
             steps {
+                // Exécution des tests unitaires (Étape 8 du TP)
                 sh 'python3 -m pytest test_app.py'
             }
         }
 
         stage('SAST Scan (SonarQube)') {
             steps {
-                // Note: This requires a SonarQube server running. 
-                // If you don't have one, this stage will fail unless you skip it.
                 script {
                     try {
+                        // Analyse du code source (Étape 9 du TP)
                         sh "${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=TP-Jenkins"
                     } catch (Exception e) {
-                        echo "SonarQube server not reachable, continuing..."
+                        echo "SonarQube non configuré ou injoignable, on continue le TP..."
                     }
                 }
             }
@@ -41,19 +44,20 @@ pipeline {
 
         stage('SCA Scan (Dependency-Check)') {
             steps {
-                // Step 10 & 11: Generate HTML and FAIL if CVSS score is above 7
-                dependencyCheck additionalArguments: '--scan . --format HTML --failBuildOnCVSS 7', odcInstallation: 'DP-Check'
+                // Analyse des dépendances et BLOCAGE si score > 7 (Étape 10 & 11 du TP)
+                // L'installation doit s'appeler 'DP-Check' dans vos outils Jenkins.
+                dependencyCheck additionalArguments: '--scan . --format HTML --format XML --failBuildOnCVSS 7', odcInstallation: 'DP-Check'
             }
         }
     }
 
     post {
         always {
-            // Publishes the report to the Jenkins UI
-            dependencyCheckPublisher pattern: '**/dependency-check-report.html'
+            // Publie le rapport XML pour que Jenkins puisse l'analyser
+            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
         }
         failure {
-            echo 'Build failed! Possible reasons: Test failure OR Critical Vulnerability (CVSS > 7)'
+            echo 'Le build a échoué ! Raison possible : Test échoué OU Vulnérabilité critique trouvée (CVSS > 7).'
         }
     }
 }

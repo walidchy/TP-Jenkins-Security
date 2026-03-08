@@ -46,8 +46,7 @@ pipeline {
             steps {
                 // Analyse des dépendances et BLOCAGE si score > 7 (Étape 10 & 11 du TP)
                 // L'installation doit s'appeler 'DP-Check' dans vos outils Jenkins.
-                dependencyCheck additionalArguments: '--scan . --format HTML --format XML --failBuildOnCVSS 7', odcInstallation: 'DP-Check'
-            }
+            dependencyCheck additionalArguments: '--scan . --format HTML --format XML --failOnCVSS 7', odcInstallation: 'DP-Check'            }
         }
     }
 

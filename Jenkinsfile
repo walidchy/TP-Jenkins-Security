@@ -40,16 +40,12 @@ pipeline {
             }
         }
 
-      stage('SCA Scan (Dependency-Check)') {
+    stage('SCA Scan (Dependency-Check)') {
             steps {
-                // On force le scan sur le fichier requirements.txt spécifiquement
-                dependencyCheck additionalArguments: '''
-                    --scan requirements.txt 
-                    --format HTML 
-                    --format XML 
-                    --failOnCVSS 7 
-                    --enableExperimental
-                ''', odcInstallation: 'DP-Check'
+                // On déplace failBuildOnCVSS en dehors des arguments pour qu'il soit géré par Jenkins
+                dependencyCheck additionalArguments: '--scan requirements.txt --format HTML --format XML --enableExperimental', 
+                                failBuildOnCVSS: 7, 
+                                odcInstallation: 'DP-Check'
             }
         }
     }

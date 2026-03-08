@@ -2,29 +2,28 @@ pipeline {
     agent any
 
     environment {
-        // Nom de l'outil configuré dans Administrer Jenkins > Tools
+        // Nom de l'outil configuré dans Jenkins > Tools
         SCANNER_HOME = tool 'SonarScanner'
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                // SOLUTION : Utiliser 'checkout scm' au lieu de la commande git manuelle.
-                // Cela utilise automatiquement la branche 'main' et les réglages du projet.
+                // Utilise la configuration automatique de Jenkins
                 checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                // Installation des bibliothèques listées dans requirements.txt
+                // Installation des bibliothèques (Flask, Requests, etc.)
                 sh 'pip install -r requirements.txt --break-system-packages'
             }
         }
 
         stage('Run Tests') {
             steps {
-                // Exécution des tests unitaires (Étape 8 du TP)
+                // Étape 8 du TP : Exécution des tests unitaires
                 sh 'python3 -m pytest test_app.py'
             }
         }
@@ -33,29 +32,29 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Analyse du code source (Étape 9 du TP)
                         sh "${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=TP-Jenkins"
                     } catch (Exception e) {
-                        echo "SonarQube non configuré ou injoignable, on continue le TP..."
+                        echo "SonarQube non configuré, on continue..."
                     }
                 }
             }
         }
 
-   stage('SCA Scan (Dependency-Check)') {
+        stage('SCA Scan (Dependency-Check)') {
             steps {
-                // On ajoute --enableExperimental pour s'assurer que l'analyseur Python est actif
+                
                 dependencyCheck additionalArguments: '--scan . --format HTML --format XML --failOnCVSS 7 --enableExperimental', odcInstallation: 'DP-Check'
             }
         }
+    }
 
     post {
         always {
-            // Publie le rapport XML pour que Jenkins puisse l'analyser
+            // Affiche le rapport de sécurité dans l'interface Jenkins
             dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
         }
         failure {
-            echo 'Le build a échoué ! Raison possible : Test échoué OU Vulnérabilité critique trouvée (CVSS > 7).'
+            echo 'Le build a échoué ! Cause possible : Test échoué OU Vulnérabilité critique (CVSS > 7).'
         }
     }
-}
+} 

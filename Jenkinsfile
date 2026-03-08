@@ -42,13 +42,12 @@ pipeline {
             }
         }
 
-        stage('SCA Scan (Dependency-Check)') {
+   stage('SCA Scan (Dependency-Check)') {
             steps {
-                // Analyse des dépendances et BLOCAGE si score > 7 (Étape 10 & 11 du TP)
-                // L'installation doit s'appeler 'DP-Check' dans vos outils Jenkins.
-            dependencyCheck additionalArguments: '--scan . --format HTML --format XML --failOnCVSS 7', odcInstallation: 'DP-Check'            }
+                // On ajoute --enableExperimental pour s'assurer que l'analyseur Python est actif
+                dependencyCheck additionalArguments: '--scan . --format HTML --format XML --failOnCVSS 7 --enableExperimental', odcInstallation: 'DP-Check'
+            }
         }
-    }
 
     post {
         always {

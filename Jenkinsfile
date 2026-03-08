@@ -2,28 +2,24 @@ pipeline {
     agent any
 
     environment {
-        // Nom de l'outil configuré dans Jenkins > Tools
         SCANNER_HOME = tool 'SonarScanner'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Utilise la configuration automatique de Jenkins
                 checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                // Installation des bibliothèques (Flask, Requests, etc.)
                 sh 'pip install -r requirements.txt --break-system-packages'
             }
         }
 
         stage('Run Tests') {
             steps {
-                // Étape 8 du TP : Exécution des tests unitaires
                 sh 'python3 -m pytest test_app.py'
             }
         }
@@ -40,11 +36,10 @@ pipeline {
             }
         }
 
-    stage('SCA Scan (Dependency-Check)') {
+        stage('SCA Scan (Dependency-Check)') {
             steps {
-                // On déplace failBuildOnCVSS en dehors des arguments pour qu'il soit géré par Jenkins
-                dependencyCheck additionalArguments: '--scan requirements.txt --format HTML --format XML --enableExperimental', 
-                                failBuildOnCVSS: 7, 
+                // On génère les rapports sans forcer l'échec ici
+                dependencyCheck additionalArguments: '--scan requirements.txt --format ALL --enableExperimental', 
                                 odcInstallation: 'DP-Check'
             }
         }
@@ -52,11 +47,12 @@ pipeline {
 
     post {
         always {
-            // Affiche le rapport de sécurité dans l'interface Jenkins
-            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-        }
-        failure {
-            echo 'Le build a échoué ! Cause possible : Test échoué OU Vulnérabilité critique (CVSS > 7).'
+            // ÉTAPE 11 : C'est ici qu'on bloque le build !
+            // failedTotalHigh: 0 signifie : "Si le nombre de failles High (score 7-9) est > 0, échoue le build"
+            // failedTotalCritical: 0 signifie : "Si le nombre de failles Critical (score 9-10) est > 0, échoue le build"
+            dependencyCheckPublisher pattern: '**/dependency-check-report.xml', 
+                                     failedTotalHigh: 0, 
+                                     failedTotalCritical: 0
         }
     }
-} 
+}

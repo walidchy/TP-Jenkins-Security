@@ -40,10 +40,16 @@ pipeline {
             }
         }
 
-        stage('SCA Scan (Dependency-Check)') {
+      stage('SCA Scan (Dependency-Check)') {
             steps {
-                
-                dependencyCheck additionalArguments: '--scan . --format HTML --format XML --failOnCVSS 7 --enableExperimental', odcInstallation: 'DP-Check'
+                // On force le scan sur le fichier requirements.txt spécifiquement
+                dependencyCheck additionalArguments: '''
+                    --scan requirements.txt 
+                    --format HTML 
+                    --format XML 
+                    --failOnCVSS 7 
+                    --enableExperimental
+                ''', odcInstallation: 'DP-Check'
             }
         }
     }

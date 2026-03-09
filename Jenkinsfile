@@ -22,17 +22,22 @@ pipeline {
 
         stage('SCA Scan (Dependency-Check)') {
             steps {
-                // 1. Lance l'analyse
+                // 1. Analyse de sécurité
                 dependencyCheck additionalArguments: '--scan requirements.txt --format XML --enableExperimental',
                 odcInstallation: 'DP-Check'
                 
-                // 2. Détection Automatique Propre
+                // 2. Détection Automatique de TOUTES les bibliothèques vulnérables
                 script {
-                    echo "--- VULNERABILITY ALERT ---"
+                    echo "#########################################################"
+                    echo "             SECURITY ALERT: VULNERABLE LIBS             "
+                    echo "#########################################################"
+                    
+                    // Cette commande cherche très large (100 lignes avant) pour ne rien rater
                     sh '''
-                    awk -v RS='<dependency' '/<vulnerability/ {match($0, /<fileName>[^<]+/); print "[!] VULNERABLE: " substr($0, RSTART+10, RLENGTH-10)}' dependency-check-report.xml | sort -u
+                    grep -B 100 "<vulnerability" dependency-check-report.xml | grep "<fileName>" | sed 's/<[^>]*>//g' | sed 's/^[[:space:]]*//' | sort -u
                     '''
-                    echo "---------------------------"
+                    
+                    echo "#########################################################"
                 }
             }
         }
@@ -40,13 +45,10 @@ pipeline {
 
     post {
         always {
-            // Force le build en ROUGE
+            // Force le build en ROUGE s'il y a un risque
             dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
                                      failedTotalHigh: 0, 
                                      failedTotalCritical: 0
-        }
-        failure {
-            echo "STOP: Critical vulnerabilities detected. Check the list above."
         }
     }
 }

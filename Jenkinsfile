@@ -22,40 +22,31 @@ pipeline {
 
         stage('SCA Scan (Dependency-Check)') {
             steps {
-                dependencyCheck additionalArguments: '--scan requirements.txt --format ALL --enableExperimental',
+                // 1. Lance l'analyse de sécurité
+                dependencyCheck additionalArguments: '--scan requirements.txt --format XML --enableExperimental',
                 odcInstallation: 'DP-Check'
                 
+                // 2. Affiche les résultats automatiquement dans la console
                 script {
-                    echo "#########################################################"
-                    echo "      AUTOMATIC VULNERABILITY DETECTION RESULTS         "
-                    echo "#########################################################"
-                    
-                    // Cette commande est plus intelligente : elle extrait TOUS les fileName 
-                    // qui appartiennent à une section contenant une vulnérabilité.
-                    sh """
-                    sed -n '/<dependency/,/<\/dependency>/p' dependency-check-report.xml | \
-                    awk '/<vulnerability/ {print p} {p=\$0}' | \
-                    grep "fileName" | \
-                    sed 's/.*<fileName>\\(.*\\)<\\/fileName>.*/[!] VULNERABLE LIBRARY FOUND: \\1/' | \
-                    sort -u
-                    """
-                    
-                    echo "#########################################################"
+                    echo "--- SECURITY ALERT: VULNERABLE LIBRARIES DETECTED ---"
+                    sh '''
+                    grep -B 10 "vulnerability" dependency-check-report.xml | grep "fileName" | sed 's/<[^>]*>//g' | sort -u
+                    '''
+                    echo "------------------------------------------------------"
                 }
             }
-        
+        }
     }
 
     post {
         always {
-            // failedTotalHigh: 0 forces the build to be RED if any risk is found
+            // Met le build en ROUGE s'il y a une faille High ou Critical (Seuil à 0)
             dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
                                      failedTotalHigh: 0, 
                                      failedTotalCritical: 0
         }
-        
         failure {
-            echo "FAILED: The Security Gate has blocked this build because of the libraries listed above."
+            echo "BUILD STOPPED: Security vulnerabilities found in requirements.txt"
         }
     }
 }

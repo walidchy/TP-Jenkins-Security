@@ -22,39 +22,37 @@ pipeline {
 
         stage('SCA Scan (Dependency-Check)') {
             steps {
-                // Scans the requirements.txt file
+                // 1. Run the scan and generate the XML report
                 dependencyCheck additionalArguments: '--scan requirements.txt --format ALL --enableExperimental',
                 odcInstallation: 'DP-Check'
+                
+                // 2. AUTOMATIC DETECTION: Parse the XML to find vulnerable library names
+                script {
+                    echo "#########################################################"
+                    echo "      AUTOMATIC VULNERABILITY DETECTION RESULTS         "
+                    echo "#########################################################"
+                    
+                    // This command looks into the XML and finds the <fileName> of every vulnerable dependency
+                    sh """
+                    grep -B 3 "vulnerability" dependency-check-report.xml | grep "fileName" | sed 's/.*<fileName>\\(.*\\)<\\/fileName>.*/[!] VULNERABLE LIBRARY FOUND: \\1/' | sort -u
+                    """
+                    
+                    echo "#########################################################"
+                }
             }
         }
     }
 
     post {
         always {
-            // failedTotalCritical: 0 makes the build RED if any Critical vuln is found
+            // failedTotalHigh: 0 forces the build to be RED if any risk is found
             dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
                                      failedTotalHigh: 0, 
                                      failedTotalCritical: 0
         }
         
         failure {
-            script {
-                echo """
-                ############################################################################
-                #                          SECURITY GATE FAILURE                           #
-                ############################################################################
-                #                                                                          #
-                #  CRITICAL VULNERABILITY DETECTED IN requirements.txt                     #
-                #                                                                          #
-                #  LIBRARY:  PyYAML 3.12                                                   #
-                #  CVE:      CVE-2017-18342                                                #
-                #  SCORE:    9.8 (CRITICAL)                                                #
-                #                                                                          #
-                #  STATUS:   BUILD BLOCKED BY DEVSECOPS POLICY                             #
-                #                                                                          #
-                ############################################################################
-                """
-            }
+            echo "FAILED: The Security Gate has blocked this build because of the libraries listed above."
         }
     }
 }

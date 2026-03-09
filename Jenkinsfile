@@ -22,17 +22,22 @@ pipeline {
 
         stage('SCA Scan (Dependency-Check)') {
             steps {
-                // 1. Lance l'analyse de sécurité
+                // 1. Generate only the XML format to keep it clean
                 dependencyCheck additionalArguments: '--scan requirements.txt --format XML --enableExperimental',
                 odcInstallation: 'DP-Check'
                 
-                // 2. Affiche les résultats automatiquement dans la console
+                // 2. Automatic Detection: Clean & Simple output
                 script {
-                    echo "--- SECURITY ALERT: VULNERABLE LIBRARIES DETECTED ---"
-                    sh '''
-                    grep -B 10 "vulnerability" dependency-check-report.xml | grep "fileName" | sed 's/<[^>]*>//g' | sort -u
-                    '''
-                    echo "------------------------------------------------------"
+                    echo "#########################################################"
+                    echo "             SECURITY SCAN: VULNERABLE LIBS              "
+                    echo "#########################################################"
+                    
+                    // This command extracts only the library name from the XML
+                    sh """
+                    grep -B 15 '<vulnerability' dependency-check-report.xml | grep '<fileName>' | sed 's/<[^>]*>//g' | sed 's/^[[:space:]]*//' | sort -u
+                    """
+                    
+                    echo "#########################################################"
                 }
             }
         }
@@ -40,13 +45,12 @@ pipeline {
 
     post {
         always {
-            // Met le build en ROUGE s'il y a une faille High ou Critical (Seuil à 0)
             dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
                                      failedTotalHigh: 0, 
                                      failedTotalCritical: 0
         }
         failure {
-            echo "BUILD STOPPED: Security vulnerabilities found in requirements.txt"
+            echo "STOP: Critical vulnerabilities found in requirements.txt"
         }
     }
 }

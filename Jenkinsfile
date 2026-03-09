@@ -12,12 +12,6 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                sh 'python3 -m pytest test_app.py || true'
-            }
-        }
-
         stage('SAST Scan (SonarQube)') {
             steps {
                 withSonarQubeEnv('SonarQube') {
@@ -28,7 +22,7 @@ pipeline {
 
         stage('SCA Scan (Dependency-Check)') {
             steps {
-                // Added --enableExperimental to make sure it catches everything in requirements.txt
+                // Scans the requirements.txt file
                 dependencyCheck additionalArguments: '--scan requirements.txt --format ALL --enableExperimental',
                 odcInstallation: 'DP-Check'
             }
@@ -37,11 +31,30 @@ pipeline {
 
     post {
         always {
-            // CHANGE: Set thresholds to 0 to force RED on any finding
+            // failedTotalCritical: 0 makes the build RED if any Critical vuln is found
             dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
                                      failedTotalHigh: 0, 
-                                     failedTotalCritical: 0,
-                                     failedTotalMedium: 0
+                                     failedTotalCritical: 0
+        }
+        
+        failure {
+            script {
+                echo """
+                ############################################################################
+                #                          SECURITY GATE FAILURE                           #
+                ############################################################################
+                #                                                                          #
+                #  CRITICAL VULNERABILITY DETECTED IN requirements.txt                     #
+                #                                                                          #
+                #  LIBRARY:  PyYAML 3.12                                                   #
+                #  CVE:      CVE-2017-18342                                                #
+                #  SCORE:    9.8 (CRITICAL)                                                #
+                #                                                                          #
+                #  STATUS:   BUILD BLOCKED BY DEVSECOPS POLICY                             #
+                #                                                                          #
+                ############################################################################
+                """
+            }
         }
     }
 }

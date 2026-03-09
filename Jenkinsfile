@@ -8,14 +8,12 @@ pipeline {
     stages {
         stage('Install Dependencies') {
             steps {
-                // On ajoute "|| true" pour ne pas bloquer le pipeline si le réseau Docker échoue
                 sh 'pip install -r requirements.txt --break-system-packages || true'
             }
         }
 
         stage('Run Tests') {
             steps {
-                // On ajoute "|| true" car si pip a échoué, pytest ne sera pas trouvé
                 sh 'python3 -m pytest test_app.py || true'
             }
         }
@@ -28,10 +26,10 @@ pipeline {
             }
         }
 
-       stage('SCA Scan (Dependency-Check)') {
+        stage('SCA Scan (Dependency-Check)') {
             steps {
-                // On force le scan sur le fichier requirements.txt
-                dependencyCheck additionalArguments: '--scan requirements.txt --format ALL',
+                // Added --enableExperimental to make sure it catches everything in requirements.txt
+                dependencyCheck additionalArguments: '--scan requirements.txt --format ALL --enableExperimental',
                 odcInstallation: 'DP-Check'
             }
         }
@@ -39,10 +37,11 @@ pipeline {
 
     post {
         always {
-            // Publie le rapport de sécurité
+            // CHANGE: Set thresholds to 0 to force RED on any finding
             dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
-                                     failedTotalHigh: 1, 
-                                     failedTotalCritical: 1
+                                     failedTotalHigh: 0, 
+                                     failedTotalCritical: 0,
+                                     failedTotalMedium: 0
         }
     }
 }

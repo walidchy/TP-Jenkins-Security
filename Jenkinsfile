@@ -34,7 +34,7 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     sh """
                     ${SCANNER_HOME}/bin/sonar-scanner \
-                    -Dsonar.projectKey=TP-Jenkins-Security \
+                    -Dsonar.projectKey=TP-Jenkins \
                     -Dsonar.sources=. \
                     -Dsonar.python.version=3
                     """

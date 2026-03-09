@@ -2,3 +2,4 @@ requests==2.19.0
 Flask==1.0
 Jinja2==2.10
 PyYAML==5.1
+pytest

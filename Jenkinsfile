@@ -22,19 +22,22 @@ pipeline {
 
         stage('SCA Scan (Dependency-Check)') {
             steps {
-                // 1. Run the scan and generate the XML report
                 dependencyCheck additionalArguments: '--scan requirements.txt --format ALL --enableExperimental',
                 odcInstallation: 'DP-Check'
                 
-                // 2. AUTOMATIC DETECTION: Parse the XML to find vulnerable library names
                 script {
                     echo "#########################################################"
                     echo "      AUTOMATIC VULNERABILITY DETECTION RESULTS         "
                     echo "#########################################################"
                     
-                    // This command looks into the XML and finds the <fileName> of every vulnerable dependency
+                    // Cette commande est plus intelligente : elle extrait TOUS les fileName 
+                    // qui appartiennent à une section contenant une vulnérabilité.
                     sh """
-                    grep -B 3 "vulnerability" dependency-check-report.xml | grep "fileName" | sed 's/.*<fileName>\\(.*\\)<\\/fileName>.*/[!] VULNERABLE LIBRARY FOUND: \\1/' | sort -u
+                    sed -n '/<dependency/,/<\/dependency>/p' dependency-check-report.xml | \
+                    awk '/<vulnerability/ {print p} {p=\$0}' | \
+                    grep "fileName" | \
+                    sed 's/.*<fileName>\\(.*\\)<\\/fileName>.*/[!] VULNERABLE LIBRARY FOUND: \\1/' | \
+                    sort -u
                     """
                     
                     echo "#########################################################"

@@ -28,9 +28,9 @@ pipeline {
             }
         }
 
-        stage('SCA Scan (Dependency-Check)') {
+       stage('SCA Scan (Dependency-Check)') {
             steps {
-                // Cette étape va scanner le fichier requirements.txt même sans internet
+                // On force le scan sur le fichier requirements.txt
                 dependencyCheck additionalArguments: '--scan requirements.txt --format ALL',
                 odcInstallation: 'DP-Check'
             }

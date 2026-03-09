@@ -2,21 +2,18 @@ pipeline {
     agent any
 
     environment {
-        // Names must match what you configured in Manage Jenkins > Tools
         SCANNER_HOME = tool 'SonarScanner'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                // Replace with your actual repo URL if different
                 checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                // --break-system-packages is often needed in modern Docker Jenkins images
                 sh 'pip install -r requirements.txt --break-system-packages || pip install -r requirements.txt'
             }
         }
@@ -30,7 +27,6 @@ pipeline {
 
         stage('SAST Scan (SonarQube)') {
             steps {
-                // 'SonarQube' must match the name in Manage Jenkins > System
                 withSonarQubeEnv('SonarQube') {
                     sh """
                     ${SCANNER_HOME}/bin/sonar-scanner \
@@ -61,7 +57,7 @@ pipeline {
                                      failedTotalCritical: 1
         }
         failure {
-            echo 'Build failed due to errors or security vulnerabilities (CVSS > 7)'
+            echo 'Build failed due to errors or security vulnerabilities'
         }
     }
 }
